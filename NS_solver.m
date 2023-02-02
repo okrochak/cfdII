@@ -91,11 +91,9 @@ dt = min(min(h),0.5*Re*min(h)^2);
 u = zeros(2*N*(N+1),1);
 
 
-% Set up the Incindence matrix 'tE21' which connects the fluxes to the
-% volumes. Use the orientation described in the assignment.
+%% Set up the Incindence matrix 'tE21' which connects the fluxes to the volumes.
 K = N^2 + 4*N;   % number of rows of Etilde21 incidence matrix with additional cells/fluxes
 tE21Ncols = length(u) + 4*N; % number of columns of Etilde21 
-tE21 = spalloc(K,tE21Ncols,4*N);
 tE21indI = zeros(1,4*tE21Ncols); 
 tE21indJ = zeros(1,4*tE21Ncols); 
 tE21val = zeros(1,4*tE21Ncols); 
@@ -103,7 +101,8 @@ counter = 1;
 
 % In those loops I assemble I index, J index and value arrays, which
 % will be later assembled in a sparse matrix. This makes the code longer
-% but decreases memory consumption.
+% but decreases memory consumption. in hindsight i,j approch should have
+% been used
 for i = 1:(2*N)     % write the first block of rows (green in excel)
     if mod(i,2) == 1
         tE21indI(counter) = i;
@@ -147,9 +146,8 @@ for i = (2*N+1):(2*N+N^2)   % write the middle block (blue one)
     counter = counter + 1; 
 end
 for i = (2*N+N^2+1):K   % write the last block (orange one)
-    i0 = i - (2*N+N^2);
-    j2 = tE21Ncols - 2*N + i0;
-    if floor((i0-1)/N) == 0 
+
+    if floor((i - (2*N+N^2)-1)/N) == 0 
         tE21indI(counter) = i;
         tE21indJ(counter) = 2*N+N*(N+1) + i - (2*N+N^2);
         tE21val(counter) = 1;
@@ -177,100 +175,139 @@ tE21indI = nonzeros(tE21indI);
 tE21indJ = nonzeros(tE21indJ); 
 tE21val = nonzeros(tE21val); 
 
-tE21dummy = sparse(tE21indI,tE21indJ,tE21val);
+tE21 = sparse(tE21indI,tE21indJ,tE21val);
+clear tE21val tE21indJ tE21indI counter K 
 
-% Old  code
-for i = 1:(2*N)     % write the first block of rows (green in excel)
-    if mod(i,2) == 1
-        tE21(i,i) = -1;
-        j = 2*N + (floor(i/2)*(N+1)) + 1;
-        tE21(i,j) = 1;
-    else
-        tE21(i,i) = 1;
-        j = 3*N + (floor(i/2)-1)*(N+1) + 1;
-        tE21(i,j) = -1;
-    end
-end
-for i = (2*N+1):(2*N+N^2)   % write the middle block (blue one)
-    j1 = i + floor((i - 2*N - 1)/N); 
-    j2 = N*(N+1) + i;
-    tE21(i,j1) = -1;
-    tE21(i,j1+1) = 1;
-    tE21(i,j2) = -1;
-    tE21(i,j2+N) = 1;
-end
-for i = (2*N+N^2+1):K   % write the last block (orange one)
-    i0 = i - (2*N+N^2);
-    j2 = tE21Ncols - 2*N + i0;
-    if floor((i0-1)/N) == 0 
-        j1 = 2*N+N*(N+1) + i0;
-        tE21(i,j1) = 1;
-        tE21(i,j2) = -1;
-    else
-        j1 = length(u) + i0;
-        tE21(i,j1) = -1;
-        tE21(i,j2) = 1;    
-    end
-end
-
+%% Trim tE21 and create u_norm
 % Now we will have to trim tE21. Only the middle block will stay, the other
 % will be 'reshuffled'
 ind_rem = [1:(2*N) (tE21Ncols-(N*2)+1):tE21Ncols];
 M_u_norm = tE21(:,ind_rem);
 tE21(:,ind_rem) = []; % the matrix is now trimmed
 
+
+%  Inserting boundary conditions for normal velocity components and store
+%  this part in the vector u_norm, see assignment.
+
 % The problem now became tE21*u+ u_norm = 0; 
 % where u_norm = M_u_norm*u_boundary;
 
-% Assemble the normal boundary vector u_bc
-u_bc = [repmat(U_wall_left,N,1); repmat(U_wall_right,N,1);
-    repmat(V_wall_bot,N,1); repmat(V_wall_top,N,1)];
+% Assemble the normal boundary vector u_Nbc
+u_Nbc = zeros(4*N,1)
+u_Nbc(1:2:(2*N)) = U_wall_left;
+u_Nbc(2:2:(2*N)) = U_wall_right;
+u_Nbc((2*N+1):(3*N)) = V_wall_bot;
+u_Nbc((3*N+1):(4*N)) = V_wall_top;
+
 
 % Compute u_norm
-u_norm = M_u_norm*u_bc;
-% M_u_norm = spalloc(4*N,tE21Ncols,2*N);
-% for i = 1:(2*N)     % write the first block of rows (green in excel)
-%     if mod(i,2) == 1
-%         M_u_norm(i,i) = -1;
-%         j = 2*N + (floor(i/2)*(N+1)) + 1;
-%         M_u_norm(i,j) = 1;
-%     else
-%         M_u_norm(i,i) = 1;
-%         j = 3*N + (floor(i/2)-1)*(N+1) + 1;
-%         M_u_norm(i,j) = -1;
-%     end
-% end
 
-% 
+u_norm = M_u_norm*u_Nbc;
 
-%
+clear ind_rem
+%%  Set up the (extended) sparse, inner-oriented incidence matrix E21
+%  The same approach as for tE21 is followed here: first build index
+%  arrays, then assemble. 
+E21rows = (N+1)^2;
+E21indI = zeros(1,4*E21rows); 
+E21indJ = zeros(1,4*E21rows); 
+E21val = zeros(1,4*E21rows); 
+counter = 1;
+for i = 1:(N+1) % row index (bottom to top)
+    for j = 1:(N+1) %loop cell by cell  %(left to right)
+        cellN = (i-1)*(N+1) + j; 
+        if i == 1
+            E21indI(counter) = cellN;   % first diagonal entries in top left
+            E21indJ(counter) = cellN;
+            E21val(counter) = 1;
+            counter = counter + 1;
+        elseif i == (N+1)
+            E21indI(counter) = cellN;   % bottom diagonal entries in bottom left
+            E21indJ(counter) = j + (N+1);
+            E21val(counter) = -1;
+            counter = counter + 1;        
+        end
+        if i ~= (N+1) % the -1 diagonal
+            E21indI(counter) = cellN;
+            E21indJ(counter) = cellN + 2*(N+1);
+            E21val(counter) = -1;
+            counter = counter + 1;   
+        end
+        if i ~= 1 % the 1 diagonal
+            E21indI(counter) = cellN;
+            E21indJ(counter) = cellN + (N+1);
+            E21val(counter) = 1;
+            counter = counter + 1;   
+        end
+        if j == 1
+            E21indI(counter) = cellN;   %alone 1s in 1,-1 ; 1,-1 pattern
+            E21indJ(counter) = 2*(N+1) + N*(N+1) + (i-1)*N + 1;
+            E21val(counter) = 1;
+            counter = counter + 1;
 
-%  Inserting boundary conditions for normal velocity components and store
-%  this part in the vector u_norm, see assignemnt.
-%
+            E21indI(counter) = cellN;   %-1s in the rightmost block
+            E21indJ(counter) = 2*(N+1) + 2*N*(N+1) + (i-1)*2 + 1;
+            E21val(counter) = -1;
+            counter = counter + 1;
+        elseif j == (N+1)
+            E21indI(counter) = cellN;   %alone -1s in 1,-1 ; 1,-1 pattern
+            E21indJ(counter) = 2*(N+1) + N*(N+1) + i*N;
+            E21val(counter) = -1;
+            counter = counter + 1;       
 
-%  Set up the sparse, outer-oriented incidence matrix tE10. 
+            E21indI(counter) = cellN;    %1s in the rightmost block
+            E21indJ(counter) = 2*(N+1) + 2*N*(N+1) + i*2;
+            E21val(counter) = 1;
+            counter = counter + 1;  
+        else        
+            E21indI(counter) = cellN;   %pairs of 1 and -1 in 1,-1 ; 1,-1 pattern
+            E21indJ(counter) = 2*(N+1) + N*(N+1) + (i-1)*N + (j-1);
+            2*(N+1) + N*(N+1) + (i-1)*N + (j-1)
+            cellN
+            E21val(counter) = -1;
+            counter = counter + 1;  
 
+            E21indI(counter) = cellN;   
+            E21indJ(counter) = 2*(N+1) + N*(N+1) + (i-1)*N + (j-1) + 1;
+            E21val(counter) = 1;
+            counter = counter + 1;              
+        end
+        
+    end
+end
 
-%  Set up the sparse, inner-oriented  incidence matrix E10
+E21 = sparse(E21indI,E21indJ,E21val);
+clear E21val E21indJ E21indI counter cellN E21rows
 
-
-%  Set up the (extended) sparse, inner-oriented incidence matrix E21
-
-
+%% Trim matrix E21
 %  Split off the prescribed tangential velocity and store this in 
 %  the vector u_pres
+ind_rem = [1:(2*(N+1)) (2*(N+1)+2*N*(N+1)+1):(4*(N+1)+2*N*(N+1))];  %outer parts columns index
+M_u_tan = E21(:,ind_rem);
+E21(:,ind_rem) = []; % the matrix is now trimmed
 
+% assemble tangential velocity boundary vector u_Tbc (u_prescr)
+u_Tbc = zeros(4*(N+1),1)
+u_Tbc(1:(N+1)) = U_wall_bot;
+u_Tbc((N+1+1):(2*(N+1))) = U_wall_top;
+u_Tbc((2*(N+1)+1):2:(4*(N+1))) = V_wall_left;
+u_Tbc((2*(N+1))+2:2:(4*(N+1))) = V_wall_right;
 
-%  Set up the Hodge matrices Ht11 and H1t1
+u_pres = M_u_tan*u_Tbc;
+%%  Set up the sparse, outer-oriented incidence matrix tE10. 
+
+tE10 = E21';    % yet to check for N=3
+%%  Set up the sparse, inner-oriented  incidence matrix E10
+E10 = -tE21';   % checked for N=3 
+
+%%  Set up the Hodge matrices Ht11 and H1t1
 
 %H1t1 and H1t1 will have size of len(u) x len(u)
-H1t1 = spalloc(length(u),length(u),length(u));
 
 % build the diagonal terms
 
 ind_th = zeros(1,length(u));    % which th should this edge take
-ind_h = zeros(1,length(u))      % which h should this edge take
+ind_h = zeros(1,length(u));      % which h should this edge take
 
 %  first write the u-part, first half 
 for i = 1:N     
@@ -282,10 +319,9 @@ for i = 1:N
     end
 end
 % now the v-part, second half
-jumpInd = N*(N+1);
 for i = 1:(N+1)     
     for j = 1:N
-        k = jumpInd + (i-1) *(N) + j;
+        k = N*(N+1) + (i-1) *(N) + j;
         % (i,j) corresponds to the primal mesh. Now the sing is flipped
         % though. 
         ind_th(k) = j;
@@ -298,14 +334,16 @@ Ht11diag = (th(ind_th)./h(ind_h));
 H1t1 = spdiags(H1t1diag',0,length(u),length(u));
 Ht11 = spdiags(Ht11diag',0,length(u),length(u));
 
+clear H1t1diag Ht11diag ind_h ind_rem ind_th 
 %  Set up the Hodge matrix Ht02
+
 %%
 
 
 %
 % The prescribed velocties will play a role in the momentum equation
 %
-u_pres_tvort=Ht02*u_pres; %U_pres to outer oriented 0 form representing contribution of boundary conditions to point wise vorticity
+u_pres_vort=Ht02*u_pres; %U_pres to outer oriented 0 form representing contribution of boundary conditions to point wise vorticity
 u_pres = H1t1*E21'*Ht02*u_pres; %U_pres to inner oriented 1 forms
 
 
@@ -336,8 +374,10 @@ iter = 1;
 
 % Set up the matrix for the Poisson equation    
 
-A = -tE21*Ht11*tE21';
-
+A = -tE21*Ht11*tE21'; 
+if sum(sum(A,2)) > N*(10^(-15))
+    warning("Poisson matrix row-sum too large!");
+end
 % Perform an LU-decomposition for the pressure matrix A
 
 [L,U] = lu(A);
