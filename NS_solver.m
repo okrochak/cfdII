@@ -96,7 +96,90 @@ u = zeros(2*N*(N+1),1);
 K = N^2 + 4*N;   % number of rows of Etilde21 incidence matrix with additional cells/fluxes
 tE21Ncols = length(u) + 4*N; % number of columns of Etilde21 
 tE21 = spalloc(K,tE21Ncols,4*N);
+tE21indI = zeros(1,4*tE21Ncols); 
+tE21indJ = zeros(1,4*tE21Ncols); 
+tE21val = zeros(1,4*tE21Ncols); 
+counter = 1;
 
+% In those loops I assemble I index, J index and value arrays, which
+% will be later assembled in a sparse matrix. This makes the code longer
+% but decreases memory consumption.
+for i = 1:(2*N)     % write the first block of rows (green in excel)
+    if mod(i,2) == 1
+        tE21indI(counter) = i;
+        tE21indJ(counter) = i;
+        tE21val(counter) = -1;
+        counter = counter + 1; % stupid matlab lol
+        tE21indI(counter) = i;
+        tE21indJ(counter) = 2*N + (floor(i/2)*(N+1)) + 1;
+        tE21val(counter) = 1;
+        counter = counter + 1; 
+    else
+        tE21indI(counter) = i; %this is equiv. to         tE21(i,i) = 1;
+        tE21indJ(counter) = i;
+        tE21val(counter) = 1;
+        counter = counter + 1;
+        tE21indI(counter) = i;
+        tE21indJ(counter) = 3*N + (floor(i/2)-1)*(N+1) + 1;
+        tE21val(counter) = -1;        
+        counter = counter + 1; 
+    end
+end
+for i = (2*N+1):(2*N+N^2)   % write the middle block (blue one)
+    tE21indI(counter) = i;
+    tE21indJ(counter) = i + floor((i - 2*N - 1)/N);
+    tE21val(counter) = -1;
+    counter = counter + 1; 
+
+    tE21indI(counter) = i;
+    tE21indJ(counter) = i + floor((i - 2*N - 1)/N) + 1;
+    tE21val(counter) =  1;
+    counter = counter + 1;  
+
+    tE21indI(counter) = i;
+    tE21indJ(counter) =  N*(N+1) + i;
+    tE21val(counter) = -1;
+    counter = counter + 1; 
+
+    tE21indI(counter) = i;
+    tE21indJ(counter) =  N*(N+1) + i + N;
+    tE21val(counter) =  1;
+    counter = counter + 1; 
+end
+for i = (2*N+N^2+1):K   % write the last block (orange one)
+    i0 = i - (2*N+N^2);
+    j2 = tE21Ncols - 2*N + i0;
+    if floor((i0-1)/N) == 0 
+        tE21indI(counter) = i;
+        tE21indJ(counter) = 2*N+N*(N+1) + i - (2*N+N^2);
+        tE21val(counter) = 1;
+        counter = counter + 1; 
+        
+        tE21indI(counter) = i;
+        tE21indJ(counter) = tE21Ncols - 2*N + i - (2*N+N^2);
+        tE21val(counter) = -1;
+        counter = counter + 1;
+    else
+        tE21indI(counter) = i;
+        tE21indJ(counter) = length(u) + i - (2*N+N^2);
+        tE21val(counter) = -1;
+        counter = counter + 1; 
+
+        tE21indI(counter) = i;
+        tE21indJ(counter) =  tE21Ncols - 2*N + i - (2*N+N^2);
+        tE21val(counter) = 1;
+        counter = counter + 1;  
+    end
+end
+
+% Remove unneeded allocated zeros
+tE21indI = nonzeros(tE21indI); 
+tE21indJ = nonzeros(tE21indJ); 
+tE21val = nonzeros(tE21val); 
+
+tE21dummy = sparse(tE21indI,tE21indJ,tE21val);
+
+% Old  code
 for i = 1:(2*N)     % write the first block of rows (green in excel)
     if mod(i,2) == 1
         tE21(i,i) = -1;
@@ -117,7 +200,7 @@ for i = (2*N+1):(2*N+N^2)   % write the middle block (blue one)
     tE21(i,j2+N) = 1;
 end
 for i = (2*N+N^2+1):K   % write the last block (orange one)
-    i0 = i - (2*N+N^2)
+    i0 = i - (2*N+N^2);
     j2 = tE21Ncols - 2*N + i0;
     if floor((i0-1)/N) == 0 
         j1 = 2*N+N*(N+1) + i0;
@@ -130,7 +213,6 @@ for i = (2*N+N^2+1):K   % write the last block (orange one)
     end
 end
 
-
 % Now we will have to trim tE21. Only the middle block will stay, the other
 % will be 'reshuffled'
 ind_rem = [1:(2*N) (tE21Ncols-(N*2)+1):tE21Ncols];
@@ -140,6 +222,12 @@ tE21(:,ind_rem) = []; % the matrix is now trimmed
 % The problem now became tE21*u+ u_norm = 0; 
 % where u_norm = M_u_norm*u_boundary;
 
+% Assemble the normal boundary vector u_bc
+u_bc = [repmat(U_wall_left,N,1); repmat(U_wall_right,N,1);
+    repmat(V_wall_bot,N,1); repmat(V_wall_top,N,1)];
+
+% Compute u_norm
+u_norm = M_u_norm*u_bc;
 % M_u_norm = spalloc(4*N,tE21Ncols,2*N);
 % for i = 1:(2*N)     % write the first block of rows (green in excel)
 %     if mod(i,2) == 1
@@ -153,15 +241,15 @@ tE21(:,ind_rem) = []; % the matrix is now trimmed
 %     end
 % end
 
-%% 
-%%
+% 
+
+%
 
 %  Inserting boundary conditions for normal velocity components and store
 %  this part in the vector u_norm, see assignemnt.
 %
 
-%  Set up the sparse, outer-oriented incidence matrix tE10.
-
+%  Set up the sparse, outer-oriented incidence matrix tE10. 
 
 
 %  Set up the sparse, inner-oriented  incidence matrix E10
@@ -176,9 +264,42 @@ tE21(:,ind_rem) = []; % the matrix is now trimmed
 
 %  Set up the Hodge matrices Ht11 and H1t1
 
+%H1t1 and H1t1 will have size of len(u) x len(u)
+H1t1 = spalloc(length(u),length(u),length(u));
+
+% build the diagonal terms
+
+ind_th = zeros(1,length(u));    % which th should this edge take
+ind_h = zeros(1,length(u))      % which h should this edge take
+
+%  first write the u-part, first half 
+for i = 1:N     
+    for j = 1:(N+1)
+        k = (i-1) *(N+1) + j;
+        % (i,j) corresponds to primal mesh
+        ind_th(k) = i;
+        ind_h(k) = j;
+    end
+end
+% now the v-part, second half
+jumpInd = N*(N+1);
+for i = 1:(N+1)     
+    for j = 1:N
+        k = jumpInd + (i-1) *(N) + j;
+        % (i,j) corresponds to the primal mesh. Now the sing is flipped
+        % though. 
+        ind_th(k) = j;
+        ind_h(k) = i;
+    end
+end
+% Now with indices known, setting up the Hodge diagonals is trivial
+H1t1diag = (h(ind_h)./th(ind_th));
+Ht11diag = (th(ind_th)./h(ind_h));
+H1t1 = spdiags(H1t1diag',0,length(u),length(u));
+Ht11 = spdiags(Ht11diag',0,length(u),length(u));
 
 %  Set up the Hodge matrix Ht02
-
+%%
 
 
 %
@@ -278,7 +399,7 @@ while diff > tol
     
     uold = u;
     
-    % Udate the velocity field
+    % Update the velocity field
     
     u = u - dt* (convective - tE21'*p + VLaplace*u/Re + u_pres/Re); 
     
