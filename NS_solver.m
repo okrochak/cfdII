@@ -25,7 +25,7 @@ warning on
 %
 
 Re = 1000;              % Reynolds number
-N = 3;                 % Number of volumes in the x- and y-direction
+N = 5;                 % Number of volumes in the x- and y-direction
 Delta = 1/N;            % uniform spacing to be used in the mapping to compute tx
 
 filename = "results_N_"+N+".mat"; %filename to save workspace to for post-processing
@@ -193,7 +193,7 @@ tE21(:,ind_rem) = []; % the matrix is now trimmed
 % where u_norm = M_u_norm*u_boundary;
 
 % Assemble the normal boundary vector u_Nbc
-u_Nbc = zeros(4*N,1)
+u_Nbc = zeros(4*N,1);
 u_Nbc(1:2:(2*N)) = U_wall_left;
 u_Nbc(2:2:(2*N)) = U_wall_right;
 u_Nbc((2*N+1):(3*N)) = V_wall_bot;
@@ -262,8 +262,7 @@ for i = 1:(N+1) % row index (bottom to top)
         else        
             E21indI(counter) = cellN;   %pairs of 1 and -1 in 1,-1 ; 1,-1 pattern
             E21indJ(counter) = 2*(N+1) + N*(N+1) + (i-1)*N + (j-1);
-            2*(N+1) + N*(N+1) + (i-1)*N + (j-1)
-            cellN
+            2*(N+1) + N*(N+1) + (i-1)*N + (j-1);
             E21val(counter) = -1;
             counter = counter + 1;  
 
@@ -287,7 +286,7 @@ M_u_tan = E21(:,ind_rem);
 E21(:,ind_rem) = []; % the matrix is now trimmed
 
 % assemble tangential velocity boundary vector u_Tbc (u_prescr)
-u_Tbc = zeros(4*(N+1),1)
+u_Tbc = zeros(4*(N+1),1);
 u_Tbc(1:(N+1)) = U_wall_bot;
 u_Tbc((N+1+1):(2*(N+1))) = U_wall_top;
 u_Tbc((2*(N+1)+1):2:(4*(N+1))) = V_wall_left;
@@ -338,7 +337,22 @@ clear H1t1diag Ht11diag ind_h ind_rem ind_th
 %  Set up the Hodge matrix Ht02
 
 %%
+ind_h = zeros(1,length(h));    % which width h should this edge take
+ind_h_2 = zeros(1,length(h));      % which height h should this edge take
 
+%  Determining indexes row by row
+for j = 1:(N+1)     
+    for i = 1:(N+1)
+        k = (i-1) *(N+1) + j;
+        % (i,j) corresponds to primal mesh
+        ind_h(k) = i;
+        ind_h_2(k) = j;
+    end
+end
+
+% Now with indices known, setting up the Hodge diagonals is trivial
+Ht02diag = (1./(h(ind_h).*h(ind_h_2)));
+Ht02 = spdiags(Ht02diag',0,length(h)^2,length(h)^2);
 
 %
 % The prescribed velocties will play a role in the momentum equation
@@ -389,7 +403,6 @@ DIV = tE21*Ht11;
 
 while diff > tol
 %while iter < 10
-        
     %Vector xi is obtained. It corresponds with the point-wise vorticity
     %at each cell
     
@@ -400,7 +413,7 @@ while diff > tol
     %grid is different (left to right for ux_xi and bottom to top for
     %uy_xi)
     
-    xi = Ht02@E21*u + u_pres_vort;
+    xi = Ht02*E21*u + u_pres_vort;
     
     for i=1:N+1
         for j=1:N+1
@@ -459,5 +472,10 @@ while diff > tol
     iter = iter + 1;
 end
 
+
+%% Plotting
+uSize = length(u)
+v = u((uSize/2)+1:end);
+u = u(1:(uSize/2));
 
 
