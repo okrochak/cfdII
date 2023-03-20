@@ -25,10 +25,9 @@ warning on
 %
 
 Re = 1000;              % Reynolds number
-N = 64;                 % Number of volumes in the x- and y-direction
+N = 32;                 % Number of volumes in the x- and y-direction
 Delta = 1/N;            % uniform spacing to be used in the mapping to compute tx
 
-filename = "results_N_"+N+".mat"; %filename to save workspace to for post-processing
 
 % Determine a suitable time step and stopping criterion, tol
 
@@ -472,15 +471,32 @@ while diff > tol
     iter = iter + 1;
 end
 
+%% Save results
+
+filename = "results_N="+N+"_tol="+string(tol)+"_Re="+Re+".mat"; %filename to save workspace to for post-processing
+save(filename, 'u')
 
 %% Plotting
+clear U
+U = u;
+vort = Ht02*E21*H1t1*U;
+vortMat = reshape(vort,(N+1),(N+1))';
 uSize = length(u)
 v = u((uSize/2)+1:end);
 u = u(1:(uSize/2));
-uMat = reshape(u,N,N+1);
-vMat = reshape(v,N+1,N);
+uMat = reshape(u,N,N+1)';
+vMat = reshape(v,N+1,N)';
+xp = tx; 
+for i = 1:N
+    yp(i) = 0.5*(xp(i)+xp(i+1));
+end
+
 figure(1)
-surf(uMat);
-figure(2)
-surf(vMat);
+contour(xp,xp,vortMat,[-3 -2 -1 -0.5 0 0.5 1 2 3 4 5]);
+% figure(1)
+% surf(uMat);
+% figure(2)
+% surf(vMat);
+
+
 
