@@ -25,7 +25,7 @@ warning on
 %
 
 Re = 1000;              % Reynolds number
-N = 5;                 % Number of volumes in the x- and y-direction
+N = 64;                 % Number of volumes in the x- and y-direction
 Delta = 1/N;            % uniform spacing to be used in the mapping to compute tx
 
 filename = "results_N_"+N+".mat"; %filename to save workspace to for post-processing
@@ -194,10 +194,10 @@ tE21(:,ind_rem) = []; % the matrix is now trimmed
 
 % Assemble the normal boundary vector u_Nbc
 u_Nbc = zeros(4*N,1);
-u_Nbc(1:2:(2*N)) = U_wall_left;
-u_Nbc(2:2:(2*N)) = U_wall_right;
-u_Nbc((2*N+1):(3*N)) = V_wall_bot;
-u_Nbc((3*N+1):(4*N)) = V_wall_top;
+u_Nbc(1:2:(2*N)) = U_wall_left.*th;
+u_Nbc(2:2:(2*N)) = U_wall_right.*th;
+u_Nbc((2*N+1):(3*N)) = V_wall_bot.*th;
+u_Nbc((3*N+1):(4*N)) = V_wall_top.*th;
 
 
 % Compute u_norm
@@ -287,10 +287,10 @@ E21(:,ind_rem) = []; % the matrix is now trimmed
 
 % assemble tangential velocity boundary vector u_Tbc (u_prescr)
 u_Tbc = zeros(4*(N+1),1);
-u_Tbc(1:(N+1)) = U_wall_bot;
-u_Tbc((N+1+1):(2*(N+1))) = U_wall_top;
-u_Tbc((2*(N+1)+1):2:(4*(N+1))) = V_wall_left;
-u_Tbc((2*(N+1))+2:2:(4*(N+1))) = V_wall_right;
+u_Tbc(1:(N+1)) = U_wall_bot.*h;
+u_Tbc((N+1+1):(2*(N+1))) = U_wall_top.*h;
+u_Tbc((2*(N+1)+1):2:(4*(N+1))) = V_wall_left.*h;
+u_Tbc((2*(N+1))+2:2:(4*(N+1))) = V_wall_right.*h;
 
 u_pres = M_u_tan*u_Tbc;
 %%  Set up the sparse, outer-oriented incidence matrix tE10. 
@@ -308,7 +308,7 @@ E10 = -tE21';   % checked for N=3
 ind_th = zeros(1,length(u));    % which th should this edge take
 ind_h = zeros(1,length(u));      % which h should this edge take
 
-%  first write the u-part, first half 
+% first write the u-part, first half 
 for i = 1:N     
     for j = 1:(N+1)
         k = (i-1) *(N+1) + j;
@@ -477,5 +477,10 @@ end
 uSize = length(u)
 v = u((uSize/2)+1:end);
 u = u(1:(uSize/2));
-
+uMat = reshape(u,N,N+1);
+vMat = reshape(v,N+1,N);
+figure(1)
+surf(uMat);
+figure(2)
+surf(vMat);
 
