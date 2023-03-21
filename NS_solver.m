@@ -25,7 +25,7 @@ warning on
 %
 
 Re = 1000;              % Reynolds number
-N = 31;      %  N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
+N = 55;      %  N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
 Delta = 1/N;            % uniform spacing to be used in the mapping to compute tx
 
 
@@ -482,15 +482,15 @@ save(filename)
 fntSz = 20;
 lblSz = 25;
 lnWd = 2;
-
-U = u;
-vort = Ht02*E21*H1t1*U;
+U = u; clear u; %U = full U vector on dual mesh
+tU = Ht11*U %conver to fluxes on the primal mesh.
+vort = Ht02*E21*H1t1*tU;
 vortMat = reshape(vort,(N+1),(N+1))';
-uSize = length(u)
-v = u((uSize/2)+1:end);
-u = u(1:(uSize/2));
-uMat = reshape(u,N+1,N)' ./ repmat(th',1,N+1); % divide the fluxes by the mesh width
-vMat = reshape(v,N,N+1)' ./ repmat(th,N+1,1);
+tuSize = length(tU)
+tv = tU((tuSize/2)+1:end); % x and y velocity fluxes on primal mesh
+tu = tU(1:(tuSize/2));
+tuMat = reshape(tu,N+1,N)' ./ repmat(th',1,N+1); % divide the fluxes by the mesh width
+tvMat = reshape(tv,N,N+1)' ./ repmat(th,N+1,1);
 xp = tx; 
 for i = 1:N
     yp(i) = 0.5*(xp(i)+xp(i+1));
@@ -498,12 +498,12 @@ end
 X = xp(2:end-1);
 [X,Y] = meshgrid(X);
 
-uIntrp = interp2(xp,yp,uMat,X,Y);
-vIntrp = interp2(yp,xp,vMat,X,Y);
+tuIntrp = interp2(xp,yp,tuMat,X,Y);
+tvIntrp = interp2(yp,xp,tvMat,X,Y);
 
 [X,Y] = meshgrid(xp,xp);
 % Integrate velocity to get to the streamfunction
-psi = cumtrapz(xp(2:end-1),uIntrp,1) - cumtrapz(xp(2:end-1),vIntrp,2);
+psi = cumtrapz(xp(2:end-1),tuIntrp,1) - cumtrapz(xp(2:end-1),tvIntrp,2);
 % Integrate vorticity
 vortInt = trapz(xp,trapz(xp,vortMat,1),2);
 
@@ -574,10 +574,10 @@ exportgraphics(gcf,["figures/psi_N"+string(N)+".pdf"], 'Resolution', 300)
 %% Plot components along x = 0.5, y = 0.5;
 % use linear interpolation for intermediate fluxes. maybe use circulation
 % isntead?
-xline.u = uMat(ceil(N/2),:);
-xline.v = (vMat(ceil(N/2),:) + vMat(ceil(N/2)+1,:)) / 2;
+xline.tu = tuMat(ceil(N/2),:);
+xline.tv = (tvMat(ceil(N/2),:) + tvMat(ceil(N/2)+1,:)) / 2;
 
-yline.u = (uMat(:,ceil(N/2)) + uMat(:,ceil(N/2)+1)) / 2;
-yline.v = vMat(:,ceil(N/2));
+yline.tu = (tuMat(:,ceil(N/2)) + tuMat(:,ceil(N/2)+1)) / 2;
+yline.tv = tvMat(:,ceil(N/2));
 
 contourf(xp(2:end-1),xp(2:end-1),psi,-0.5:0.05:0.5);
