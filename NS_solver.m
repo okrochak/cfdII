@@ -25,13 +25,13 @@ warning on
 %
 
 Re = 1000;              % Reynolds number
-N = 32;                 % Number of volumes in the x- and y-direction
+N = 31;      %  N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
 Delta = 1/N;            % uniform spacing to be used in the mapping to compute tx
 
 
 % Determine a suitable time step and stopping criterion, tol
 
-tol =   1e-6;             % tol determines when steady state is reached and the program terminates
+tol =   1e-10;             % tol determines when steady state is reached and the program terminates
 
 % wall velocities
 U_wall_top = -1;
@@ -472,31 +472,112 @@ while diff > tol
 end
 
 %% Save results
-
-filename = "results_N="+N+"_tol="+string(tol)+"_Re="+Re+".mat"; %filename to save workspace to for post-processing
-save(filename, 'u')
-
-%% Plotting
 clear U
+
+filename = "results/results_N="+N+"_tol="+string(tol)+"_Re="+Re+".mat"; %filename to save workspace to for post-processing
+save(filename)
+
+%% Post-processing
+
+fntSz = 20;
+lblSz = 25;
+lnWd = 2;
+
 U = u;
 vort = Ht02*E21*H1t1*U;
 vortMat = reshape(vort,(N+1),(N+1))';
 uSize = length(u)
 v = u((uSize/2)+1:end);
 u = u(1:(uSize/2));
-uMat = reshape(u,N,N+1)';
-vMat = reshape(v,N+1,N)';
+uMat = reshape(u,N+1,N)' ./ repmat(th',1,N+1); % divide the fluxes by the mesh width
+vMat = reshape(v,N,N+1)' ./ repmat(th,N+1,1);
 xp = tx; 
 for i = 1:N
     yp(i) = 0.5*(xp(i)+xp(i+1));
 end
+X = xp(2:end-1);
+[X,Y] = meshgrid(X);
+
+uIntrp = interp2(xp,yp,uMat,X,Y);
+vIntrp = interp2(yp,xp,vMat,X,Y);
+
+[X,Y] = meshgrid(xp,xp);
+% Integrate velocity to get to the streamfunction
+psi = cumtrapz(xp(2:end-1),uIntrp,1) - cumtrapz(xp(2:end-1),vIntrp,2);
+% Integrate vorticity
+vortInt = trapz(xp,trapz(xp,vortMat,1),2);
+
+
+%% Plotting routine
 
 figure(1)
-contour(xp,xp,vortMat,[-3 -2 -1 -0.5 0 0.5 1 2 3 4 5]);
-% figure(1)
-% surf(uMat);
-% figure(2)
-% surf(vMat);
+set(gcf,'Position',[100 100 800 700])
+
+contLvl = [-3 -2 -1 -0.5 0 0.5 1 2 3 4 5];
+tickVals = linspace(contLvl(1), contLvl(end), length(contLvl));
+% adapted from https://nl.mathworks.com/matlabcentral/answers/738107-how-to-make-a-discrete-colorbar-with-specified-intervals?s_tid=prof_contriblnk
+data = vortMat; newdata = data; 
+for tv = 2:length(contLvl)
+    % find all data between the new tick ranges, one block at a time
+    ind = data>contLvl(tv-1) & data<=contLvl(tv);
+    % Change the corresponding values in the copied data to scale to the
+    % block edges
+    newdata(ind) = rescale(data(ind),tickVals(tv-1),tickVals(tv));
+end
+
+contourf(xp,xp,newdata,tickVals)
+C=turbo(length(contLvl));
+tickVals = linspace(contLvl(1), contLvl(end), length(contLvl)+1);
+colormap(flipud(C))
+colorbar('Ticks',tickVals,...
+    'TickLabels',[string(contLvl(1:end)) ""],'TickLabelInterpreter','latex');
+title('$\omega $ for $N = $'+string(N),'interpreter','latex','FontSize',lblSz);
+xlabel('$x$','interpreter','latex','FontSize',lblSz);
+ylabel('$y$','interpreter','latex','FontSize',lblSz);
+set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
+exportgraphics(gcf,["figures/omega_N"+string(N)+".pdf"], 'Resolution', 300)
 
 
 
+%% Stream function
+figure(2)
+set(gcf,'Position',[100 100 800 700])
+
+contLvl = flip([0.1175 0.115 0.11 0.1 0.09 0.07 0.05 0.03 0.01 0.001 1e-5 1e-10 ...
+    0 -1e-6 -1e-5 -5e-5 -1e-4 -2.5e-4 -5e-4 -1e-3 -1.5e-3]);
+tickVals = linspace(contLvl(1), contLvl(end), length(contLvl));
+% adapted from https://nl.mathworks.com/matlabcentral/answers/738107-how-to-make-a-discrete-colorbar-with-specified-intervals?s_tid=prof_contriblnk
+data = psi; newdata = data; 
+for tv = 2:length(contLvl)
+    % find all data between the new tick ranges, one block at a time
+    ind = data>contLvl(tv-1) & data<=contLvl(tv);
+    % Change the corresponding values in the copied data to scale to the
+    % block edges
+    newdata(ind) = rescale(data(ind),tickVals(tv-1),tickVals(tv));
+end
+
+contour(xp(2:end-1),xp(2:end-1),newdata,tickVals)
+C=turbo(length(contLvl));
+tickVals = linspace(contLvl(1), contLvl(end), length(contLvl)+1);
+colormap(flipud(C))
+cmTicks = [string(contLvl(1:end)) ""];
+cmTicks(1:2:end) = "";
+colorbar('Ticks',tickVals,...
+    'TickLabels',cmTicks,'TickLabelInterpreter','latex');
+title('Streamlines for $N = $'+string(N),'interpreter','latex','FontSize',lblSz);
+xlabel('$x$','interpreter','latex','FontSize',lblSz);
+ylabel('$y$','interpreter','latex','FontSize',lblSz);
+set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
+exportgraphics(gcf,["figures/psi_N"+string(N)+".pdf"], 'Resolution', 300)
+
+
+%% Plot components along x = 0.5, y = 0.5;
+% use linear interpolation for intermediate fluxes. maybe use circulation
+% isntead?
+xline.u = uMat(ceil(N/2),:);
+xline.v = (vMat(ceil(N/2),:) + vMat(ceil(N/2)+1,:)) / 2;
+
+yline.u = (uMat(:,ceil(N/2)) + uMat(:,ceil(N/2)+1)) / 2;
+yline.v = vMat(:,ceil(N/2));
+
+contourf(xp(2:end-1),xp(2:end-1),psi,-0.5:0.05:0.5);
