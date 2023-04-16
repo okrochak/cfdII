@@ -25,7 +25,7 @@ warning on
 %
 
 Re = 1000;              % Reynolds number
-N = 55;      %  N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
+N = 31;      %  N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
 Delta = 1/N;            % uniform spacing to be used in the mapping to compute tx
 
 
@@ -478,15 +478,39 @@ filename = "results/results_N="+N+"_tol="+string(tol)+"_Re="+Re+".mat"; %filenam
 save(filename)
 
 %%% Post-processing
+close all
 % Plotting preferences
 fntSz = 20;
 lblSz = 25;
 lnWd = 2;
 
 %% Calculating domain properties
-U = u; 
-%clear u; %U = full U vector on dual mesh
     
+    % Domain velocities
+U = u; % Flux vector over dual edges
+tU = Ht11*U; % Flux vector over primal edges
+
+    % Calculating velocities at dual edges
+h_vec = [repmat((1./h),1,N), repelem((1./h), N)]; % Vector containing edge widths
+Uedge = U.*h_vec'; % Converting fluxes to velocities along dual edges
+    
+    % Calculating velocities at dual points in x- direction
+Uedge_x = Uedge(1:size(Uedge)/2); % Edge velocities along x- direction
+Upoint_x = (Uedge_x(1:size(Uedge_x)-1) + Uedge_x(2:end)) / 2; % Averaging over edge velocities
+Upoint_x(N+1 : N+1 : size(Upoint_x,1)) = []; % Eliminating unphysical averages
+Upoint_xMat = reshape(Upoint_x,N,N); % Dual point x- velocity matrix
+    
+    % Calculating velocities at dual points in y- direction
+Uedge_y = Uedge(size(Uedge)/2+1:end); % Edge velocities along y- direction
+UedgeMat_y = reshape(Uedge_y,N,N+1); % Edge velocity matrix
+Upoint_yMat = zeros (N,N); % Dual point y- velocity matrix
+for i = 1:N
+    for j = 1:N
+        Upoint_yMat(i,j) = ( UedgeMat_y(i,j+1) + UedgeMat_y(i,j) )/ 2;
+    end
+end
+Upoint_y = reshape(Upoint_yMat,N*N,1);
+
     % Contructing the primal mesh grid
 xp = tx; 
 for i = 1:N
@@ -499,8 +523,6 @@ X = xp(2:end-1);
 xd = x([(2):(N+1)]);
 [tY,tX] = meshgrid(xd,xd); % inner dual grid
 
-    % Velocity fluxes over primal edges vector
-tU = Ht11*U; % Convert to fluxes on the primal mesh.
 
     % Vorticity at dual points
 vort = Ht02*E21*H1t1*tU; % Convert fluxes to vorticity
@@ -530,11 +552,16 @@ vIntrp = interp2(yp,xp,tvMat,tX,tY); % Velocity in y-direction
 
     % Inner dual point pressures 
 p_trim = p([(2*N+1):(size(p)-2*N)]); % Pressure at inner dual points
-p_ref = p_trim((N*N/2+0.5)); % Reference pressure
-pdata = p_trim - p_ref; % Adjusting pressure
-pMat = reshape(pdata,N,N); % Reshape vector into pressure matrix
-pMat = pMat - 0.5*(uIntrp.^2 + vIntrp.^2); % Substract dynamic pressure
 
+pMat = reshape(p_trim,N,N); % Reshape vector into pressure matrix
+pMat = pMat - 0.5*(Upoint_xMat.^2 + Upoint_yMat.^2); % Substract dynamic pressure
+p_ref = pMat((N/2+0.5),(N/2+0.5)); % Reference pressure
+pMat = pMat - p_ref; % Adjusting pressure
+
+% p_ref = p_trim((N*N/2+0.5)); % Reference pressure
+% pdata = p_trim - p_ref; % Adjusting pressure
+% pMat = reshape(pdata,N,N); % Reshape vector into pressure matrix
+% pMat = pMat - 0.5*(Upoint_xMat.^2 + Upoint_yMat.^2); % Substract dynamic pressure
 
 %%% Plotting routine
 %% Plot Vorticity
@@ -598,21 +625,8 @@ ylabel('$y$','interpreter','latex','FontSize',lblSz);
 set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
 exportgraphics(gcf,["figures/psi_N"+string(N)+".pdf"], 'Resolution', 300)
 
-
-%% Plot components along x = 0.5, y = 0.5;
-% use linear interpolation for intermediate fluxes. maybe use circulation
-% isntead?
-figure(3)
-xline.tu = tuMat(ceil(N/2),:);
-xline.tv = (tvMat(ceil(N/2),:) + tvMat(ceil(N/2)+1,:)) / 2;
-
-yline.tu = (tuMat(:,ceil(N/2)) + tuMat(:,ceil(N/2)+1)) / 2;
-yline.tv = tvMat(:,ceil(N/2));
-
-contourf(xp(2:end-1),xp(2:end-1),psi,-0.5:0.05:0.5);
-
 %% Plot pressure field;
-figure(4)
+figure(3)
 set(gcf,'Position',[100 100 800 700])
 
 contLvl = [-0.002 0.0 0.02 0.05 0.07 0.09 0.11 0.12 0.17 0.3];
@@ -638,4 +652,127 @@ xlabel('$x$','interpreter','latex','FontSize',lblSz);
 ylabel('$y$','interpreter','latex','FontSize',lblSz);
 set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
 exportgraphics(gcf,["figures/p_N"+string(N)+".pdf"], 'Resolution', 300)
+
+%% Plot components along x = 0.5, y = 0.5;
+% use linear interpolation for intermediate fluxes. maybe use circulation
+% isntead?
+% xline.tu = tuMat(ceil(N/2),:);
+% xline.tv = (tvMat(ceil(N/2),:) + tvMat(ceil(N/2)+1,:)) / 2;+
+% yline.tu = (tuMat(:,ceil(N/2)) + tuMat(:,ceil(N/2)+1)) / 2;
+% yline.tv = tvMat(:,ceil(N/2))
+%contourf(xp(2:end-1),xp(2:end-1),psi,-0.5:0.05:0.5);
+
+    % Variables along line x = 0.5
+Y_midline = xd;
+p_ymidline = pMat((N/2+0.5),:);
+vort_ymidline = vortMat(:,(N/2+0.5));
+u_ycenterline =  Upoint_xMat(N/2+0.5,:);
+v_ycenterline =  Upoint_yMat(N/2+0.5,:);
+Botella_vertdata = [1.0000 -1.00000 -1.0000000 0.052987 14.7534,;
+0.9766 -0.65928 -0.6644227 0.052009 12.0670,;
+0.9688 -0.57492 -0.5808359 0.051514 9.49496,;
+0.9609 -0.51117 -0.5169277 0.050949 6.95968,;
+0.9531 -0.46604 -0.4723329 0.050329 4.85754,;
+0.8516 -0.33304 -0.3372212 0.034910 1.76200,;
+0.7344 -0.18719 -0.1886747 0.012122 2.09121,;
+0.6172 -0.05702 -0.0570178 -0.000827 2.06539,;
+0.5000 0.06080 0.0620561 0.000000 2.06722,;
+0.4531 0.10648 0.1081999 0.004434 2.06215,;
+0.2813 0.27805 0.2803696 0.040377 2.26772,;
+0.1719 0.38289 0.3885691 0.081925 1.05467,;
+0.1016 0.29730 0.3004561 0.104187 -1.63436,;
+0.0703 0.22220 0.2228955 0.108566 -2.20175,;
+0.0625 0.20196 0.2023300 0.109200 -2.31786,;
+0.0547 0.18109 0.1812881 0.109689 -2.44960,;
+0.0000 0.00000 0.0000000 0.110591 -4.16648];
+
+figure()
+subplot(1,3,1)
+hold on
+plot(Y_midline,p_ymidline,'k')
+plot(Botella_vertdata(:,1),Botella_vertdata(:,4),'--k')
+legend('Calculation results','Reference results')
+title('Pressure','interpreter','latex','FontSize',lblSz);
+xlabel('$y$','interpreter','latex','FontSize',lblSz);
+ylabel('$p$','interpreter','latex','FontSize',lblSz);
+hold off
+
+subplot(1,3,2)
+hold on
+plot(Y_midline,vort_ymidline(1:end-1),'k')
+plot(Botella_vertdata(:,1),Botella_vertdata(:,5),'--k')
+legend('Calculation results','Reference results')
+title('Vorticity','interpreter','latex','FontSize',lblSz);
+xlabel('$y$','interpreter','latex','FontSize',lblSz);
+ylabel('$\omega$','interpreter','latex','FontSize',lblSz);
+hold off
+
+subplot(1,3,3)
+hold on
+plot(Y_midline,u_ycenterline,'k')
+plot(Botella_vertdata(:,1),Botella_vertdata(:,3),'--k')
+legend('Calculation results','Reference results')
+title('Velocity','interpreter','latex','FontSize',lblSz);
+xlabel('$y$','interpreter','latex','FontSize',lblSz);
+ylabel('$u$','interpreter','latex','FontSize',lblSz);
+hold off
+sgtitle('Pressure, vorticity and horizontal velocity along centerline x = 0.5') 
+set(gcf,'Position',[100 100 1500 700])
+
+    % Variables along line y = 0.5
+X_midline = xd;
+p_xmidline = pMat(:,(N/2+0.5));
+vort_xmidline = vortMat((N/2+0.5),:);
+u_xcenterline =  Upoint_xMat(:,N/2+0.5);
+v_xcenterline =  Upoint_yMat(:,N/2+0.5);
+Botella_hordata = [0.0000 0.00000 0.0000000 0.077455 -5.46217,;
+0.0312 -0.21388 -0.2279225 0.078837 -8.44350,;
+0.0391 -0.27669 -0.2936869 0.078685 -8.24616,;
+0.0469 -0.33714 -0.3553213 0.078148 -7.58524,;
+0.0547 -0.39188 -0.4103754 0.077154 -6.50867,;
+0.0937 -0.51550 -0.5264392 0.065816 0.92291,;
+0.1406 -0.42665 -0.4264545 0.049029 3.43016,;
+0.1953 -0.31966 -0.3202137 0.034552 2.21171,;
+0.5000 0.02526 0.0257995 0.000000 2.06722,;
+0.7656 0.32235 0.3253592 0.044848 2.06122,;
+0.7734 0.33075 0.3339924 0.047260 2.00174,;
+0.8437 0.37095 0.3769189 0.069511 0.74207,;
+0.9062 0.32627 0.3330442 0.084386 -0.82398,;
+0.9219 0.30353 0.3099097 0.086716 -1.23991,;
+0.9297 0.29012 0.2962703 0.087653 -1.50306,;
+0.9375 0.27485 0.2807056 0.088445 -1.83308,;
+1.0000 0.00000 0.0000000 0.090477 -7.66369];
+figure()
+
+subplot(1,3,1)
+hold on
+plot(Y_midline,p_xmidline,'r')
+plot(Botella_hordata(:,1),Botella_hordata(:,4),'--r')
+legend('Calculation results','Reference results')
+title('Pressure','interpreter','latex','FontSize',lblSz);
+xlabel('$x$','interpreter','latex','FontSize',lblSz);
+ylabel('$p$','interpreter','latex','FontSize',lblSz);
+hold off
+
+subplot(1,3,2)
+hold on
+plot(Y_midline,vort_xmidline(1:end-1),'r')
+plot(Botella_hordata(:,1),Botella_hordata(:,5),'--r')
+legend('Calculation results','Reference results')
+title('Vorticity','interpreter','latex','FontSize',lblSz);
+xlabel('$x$','interpreter','latex','FontSize',lblSz);
+ylabel('$\omega$','interpreter','latex','FontSize',lblSz);
+hold off
+
+subplot(1,3,3)
+hold on
+plot(Y_midline,v_xcenterline,'r')
+plot(Botella_hordata(:,1),Botella_hordata(:,3),'--r')
+legend('Calculation results','Reference results')
+title('Vertical velocity','interpreter','latex','FontSize',lblSz);
+xlabel('$x$','interpreter','latex','FontSize',lblSz);
+ylabel('$v$','interpreter','latex','FontSize',lblSz);
+hold off
+sgtitle('Pressure, vorticity and vertical velocity along centerline y = 0.5') 
+set(gcf,'Position',[100 100 1500 700])
 
