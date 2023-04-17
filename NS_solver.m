@@ -641,7 +641,7 @@ for tv = 2:length(contLvl)
     newdata(ind) = rescale(data(ind),tickVals(tv-1),tickVals(tv));
 end
 
-contourf(tX,tY,pMat,tickVals)
+contourf(tX,tY,newdata,tickVals)
 C=turbo(length(contLvl));
 tickVals = linspace(contLvl(1), contLvl(end), length(contLvl)+1);
 colormap(flipud(C))
@@ -775,4 +775,3 @@ ylabel('$v$','interpreter','latex','FontSize',lblSz);
 hold off
 sgtitle('Pressure, vorticity and vertical velocity along centerline y = 0.5') 
 set(gcf,'Position',[100 100 1500 700])
-
