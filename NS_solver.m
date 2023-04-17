@@ -590,6 +590,9 @@ title('$\omega $ for $N = $'+string(N),'interpreter','latex','FontSize',lblSz);
 xlabel('$x$','interpreter','latex','FontSize',lblSz);
 ylabel('$y$','interpreter','latex','FontSize',lblSz);
 set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
+hold on
+p = pcolor(X,Y,X*0);
+alpha(p,0); p.EdgeAlpha = 0.1; hold off;
 exportgraphics(gcf,["figures/omega_N"+string(N)+".pdf"], 'Resolution', 300)
 
 
@@ -623,6 +626,9 @@ title('Streamlines for $N = $'+string(N),'interpreter','latex','FontSize',lblSz)
 xlabel('$x$','interpreter','latex','FontSize',lblSz);
 ylabel('$y$','interpreter','latex','FontSize',lblSz);
 set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
+hold on
+p = pcolor(X(2:end-1,2:end-1),Y(2:end-1,2:end-1),X(2:end-1,2:end-1)*0);
+alpha(p,0); p.EdgeAlpha = 0.1; hold off;
 exportgraphics(gcf,["figures/psi_N"+string(N)+".pdf"], 'Resolution', 300)
 
 %% Plot pressure field;
@@ -651,6 +657,9 @@ title('Isobaric lines for $N = $'+string(N),'interpreter','latex','FontSize',lbl
 xlabel('$x$','interpreter','latex','FontSize',lblSz);
 ylabel('$y$','interpreter','latex','FontSize',lblSz);
 set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
+hold on
+p = pcolor(tX,tY,tX*0);
+alpha(p,0); p.EdgeAlpha = 0.1; hold off;
 exportgraphics(gcf,["figures/p_N"+string(N)+".pdf"], 'Resolution', 300)
 
 %% Plot components along x = 0.5, y = 0.5;
