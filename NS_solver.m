@@ -499,9 +499,10 @@ vortMat = reshape(vort,(N+1),(N+1))'; % Reshape vorticity vector into matrix
 tuSize = length(tU);
 tv = tU((tuSize/2)+1:end); % x and y velocity fluxes on primal mesh
 tu = tU(1:(tuSize/2));
+    
 % tuMat, tvMat are fluxes divided by cell width, velocities through primal edges
 tuMat = reshape(tu,N+1,N)' ./ repmat(th',1,N+1); % divide the fluxes by the mesh width
-tvMat = reshape(tv,N,N+1)' ./ repmat(th,N+1,1);
+tvMat = reshape(tv,N,N+1)' ./ repmat(th,N+1,1); % divide the fluxes by the mesh width
         
 % Calculate cell average values for primal cells
 tuIntrp = interp2(tx,x(2:end-1),tuMat,X,Y);
