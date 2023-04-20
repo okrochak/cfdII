@@ -558,6 +558,10 @@ tickVals = linspace(contLvl(1), contLvl(end), length(contLvl)+1);
 colormap(flipud(C))
 colorbar('Ticks',tickVals,...
     'TickLabels',[string(contLvl(1:end)) ""],'TickLabelInterpreter','latex');
+% colorbar('Ticks',tickVals,...
+%     'TickLabels',flip({'','5(a)', '4(b)' ,'3(c)', '2(d)', '1(e)' ,'0.5(f)' ,'0(g)' ,'-0.5(h)' ,'-1(i)', '-2(j)', '-3(k)'}) ...
+%     ,'TickLabelInterpreter','latex');
+
 title('$\omega $ for $N = $'+string(N),'interpreter','latex','FontSize',lblSz);
 xlabel('$x$','interpreter','latex','FontSize',lblSz);
 ylabel('$y$','interpreter','latex','FontSize',lblSz);

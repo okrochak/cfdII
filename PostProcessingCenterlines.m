@@ -4,8 +4,9 @@ clear
 
 % Plotting preferences
 fntSz = 20;
+legSz = 15;
 lblSz = 25;
-lnWd = 2;
+lnWd = 1.5;
 
 % Simulation conditions
 tol = 1e-10;
@@ -18,7 +19,8 @@ for i = 1:5
     Crun = ['r','g','b','m','k']; % Assigning a colour to each run
     N = Nruns(i);
     C = Crun(i);
-    load(strcat('results/PP_N=',num2str(N),'_tol=',num2str(tol),'_Re=',num2str(Re),'.mat')) %Loading Post Processed files
+%     load(strcat('results/PP_N=',num2str(N),'_tol=',num2str(tol),'_Re=',num2str(Re),'.mat')) %Loading Post Processed files
+    load(strcat('results/PostProcessingN_',num2str(N),'.mat')) %Loading Post Processed files
     
     % Variables along line x = 0.5
     Y_midline = postProc.x; % y- coordinates 
@@ -27,33 +29,36 @@ for i = 1:5
     u_ycenterline =  postProc.u(:,(N/2+0.5)); % u Velocity along centerline
     v_ycenterline =  postProc.v(:,(N/2+0.5)); % v Velocity along centerline
     
-    figure(1)
-    py = subplot(1,3,1);
+    py = figure(1)
+    set(gcf,'Position',[100 100 800 700])
     hold on
-    plot(Y_midline,p_ymidline,C,'DisplayName',strcat('N = ',num2str(N)))
-    legend()
-    title('Pressure','interpreter','latex','FontSize',lblSz);
+    plot(Y_midline,p_ymidline,C,'DisplayName',strcat('N = ',num2str(N)),'LineWidth',lnWd)
+    legend('Location','NorthEast','interpreter','latex','FontSize',legSz)
+    title('Pressure at $x = 0.5$','interpreter','latex','FontSize',lblSz);
     xlabel('$y$','interpreter','latex','FontSize',lblSz);
     ylabel('$p$','interpreter','latex','FontSize',lblSz);
+    set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
 
-    vorty = subplot(1,3,2);
+    vorty = figure(2);
+    set(gcf,'Position',[100 100 800 700])
     hold on
-    plot(Y_midline(1:end-1),vort_ymidline(1:end-1),C,'DisplayName',strcat('N = ',num2str(N)))
-    legend()
-    title('Vorticity','interpreter','latex','FontSize',lblSz);
+    plot(Y_midline(1:end-1),vort_ymidline(1:end-1),C,'DisplayName',strcat('N = ',num2str(N)),'LineWidth',lnWd)
+    legend('Location','NorthWest','interpreter','latex','FontSize',legSz)
+    title('Vorticity at $x = 0.5$','interpreter','latex','FontSize',lblSz);
     xlabel('$y$','interpreter','latex','FontSize',lblSz);
     ylabel('$\omega$','interpreter','latex','FontSize',lblSz);
+    set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
+    ylim([-5 17])
 
-    uVely = subplot(1,3,3);
+    uVely = figure(3);
+    set(gcf,'Position',[100 100 800 700])
     hold on
-    plot(Y_midline,u_ycenterline,C,'DisplayName',strcat('N = ',num2str(N)))
-    legend()
-    title('Velocity','interpreter','latex','FontSize',lblSz);
+    plot(Y_midline,u_ycenterline,C,'DisplayName',strcat('N = ',num2str(N)),'LineWidth',lnWd)
+    legend('Location','NorthEast','interpreter','latex','FontSize',legSz)
+    title('$x-$velocity at $x = 0.5$','interpreter','latex','FontSize',lblSz);
     xlabel('$y$','interpreter','latex','FontSize',lblSz);
     ylabel('$u$','interpreter','latex','FontSize',lblSz);
-
-    sgtitle('Pressure, vorticity and horizontal velocity along centerline x = 0.5') 
-    set(gcf,'Position',[100 100 1500 700])
+    set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
 
     % Variables along line y = 0.5
     X_midline = postProc.x; % x- coordinates
@@ -62,33 +67,35 @@ for i = 1:5
     u_xcenterline =  postProc.u(N/2+0.5,:); % u Velocity along centerline
     v_xcenterline =  postProc.v(N/2+0.5,:); % v Velocity along centerline
     
-    figure(2)
-    px = subplot(1,3,1);
+    px = figure(4)
+    set(gcf,'Position',[100 100 800 700])
     hold on
-    plot(Y_midline,p_xmidline,C,'DisplayName',strcat('N =',num2str(N)))
-    legend()
-    title('Pressure','interpreter','latex','FontSize',lblSz);
+    plot(Y_midline,p_xmidline,C,'DisplayName',strcat('N =',num2str(N)),'LineWidth',lnWd)
+    legend('Location','SouthEast','interpreter','latex','FontSize',legSz)
+    title('Pressure at $y = 0.5$','interpreter','latex','FontSize',lblSz);
     xlabel('$x$','interpreter','latex','FontSize',lblSz);
     ylabel('$p$','interpreter','latex','FontSize',lblSz);
+    set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
 
-    vortx = subplot(1,3,2);
+    vortx = figure(5);
+    set(gcf,'Position',[100 100 800 700])
     hold on
-    plot(Y_midline,vort_xmidline,C,'DisplayName',strcat('N = ',num2str(N)))
-    legend()
-    title('Vorticity','interpreter','latex','FontSize',lblSz);
+    plot(Y_midline,vort_xmidline,C,'DisplayName',strcat('N = ',num2str(N)),'LineWidth',lnWd)
+    legend('Location','SouthEast','interpreter','latex','FontSize',legSz)
+    title('Vorticity at $y = 0.5$','interpreter','latex','FontSize',lblSz);
     xlabel('$x$','interpreter','latex','FontSize',lblSz);
     ylabel('$\omega$','interpreter','latex','FontSize',lblSz);
+    set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
 
-    vVelx = subplot(1,3,3);
+    vVelx = figure(6);
+    set(gcf,'Position',[100 100 800 700])
     hold on
-    plot(Y_midline,v_xcenterline,C,'DisplayName',strcat('N = ',num2str(N)))
-    legend()
-    title('Vertical velocity','interpreter','latex','FontSize',lblSz);
+    plot(Y_midline,v_xcenterline,C,'DisplayName',strcat('N = ',num2str(N)),'LineWidth',lnWd)
+    legend('Location','SouthEast','interpreter','latex','FontSize',legSz)
+    title('$y-$velocity at $y = 0.5$','interpreter','latex','FontSize',lblSz);
     xlabel('$x$','interpreter','latex','FontSize',lblSz);
     ylabel('$v$','interpreter','latex','FontSize',lblSz);
-
-    sgtitle('Pressure, vorticity and vertical velocity along centerline y = 0.5') 
-    set(gcf,'Position',[100 100 1500 700]);
+    set(gca,'FontSize', fntSz,'TickLabelInterpreter','latex');
 end
 
 % Reference results from Botella along centerline x = 0.5
@@ -110,15 +117,16 @@ Botella_vertdata = [1.0000 -1.00000 -1.0000000 0.052987 14.7534,;
 0.0547 0.18109 0.1812881 0.109689 -2.44960,;
 0.0000 0.00000 0.0000000 0.110591 -4.16648];
 
-axes(py)
+% axes(py)
+figure(py)
 hold on
-plot(Botella_vertdata(:,1),Botella_vertdata(:,4),'--k','DisplayName','Reference results')
-axes(vorty)
+scatter(Botella_vertdata(:,1),Botella_vertdata(:,4),'k','DisplayName','Reference','LineWidth',lnWd)
+figure(vorty)
 hold on
-plot(Botella_vertdata(:,1),Botella_vertdata(:,5),'--k','DisplayName','Reference results')
-axes(uVely)
+scatter(Botella_vertdata(:,1),Botella_vertdata(:,5),'k','DisplayName','Reference','LineWidth',lnWd)
+figure(uVely)
 hold on
-plot(Botella_vertdata(:,1),Botella_vertdata(:,3),'--k','DisplayName','Reference results')
+scatter(Botella_vertdata(:,1),Botella_vertdata(:,3),'k','DisplayName','Reference','LineWidth',lnWd)
 
 % Reference results from Botella along centerline y = 0.5
 Botella_hordata = [0.0000 0.00000 0.0000000 0.077455 -5.46217,;
@@ -139,15 +147,19 @@ Botella_hordata = [0.0000 0.00000 0.0000000 0.077455 -5.46217,;
 0.9375 0.27485 0.2807056 0.088445 -1.83308,;
 1.0000 0.00000 0.0000000 0.090477 -7.66369];
 
-axes(px)
+figure(px)
 hold on
-plot(Botella_hordata(:,1),Botella_hordata(:,4),'--k','DisplayName','Reference results')
-axes(vortx)
+scatter(Botella_hordata(:,1),Botella_hordata(:,4),'k','DisplayName','Reference','LineWidth',lnWd)
+figure(vortx)
 hold on
-plot(Botella_hordata(:,1),Botella_hordata(:,5),'--k','DisplayName','Reference results')
-axes(vVelx)
+scatter(Botella_hordata(:,1),Botella_hordata(:,5),'k','DisplayName','Reference','LineWidth',lnWd)
+figure(vVelx)
 hold on
-plot(Botella_hordata(:,1),Botella_hordata(:,3),'--k','DisplayName','Reference results')
+scatter(Botella_hordata(:,1),Botella_hordata(:,3),'k','DisplayName','Reference','LineWidth',lnWd)
 
-exportgraphics(figure(1),["figures/X05centerline.pdf"], 'Resolution', 300)
-exportgraphics(figure(2),["figures/Y05centerline.pdf"], 'Resolution', 300)
+exportgraphics(figure(1),["figures/X05pressure.pdf"], 'Resolution', 300)
+exportgraphics(figure(2),["figures/X05vorticity.pdf"], 'Resolution', 300)
+exportgraphics(figure(3),["figures/X05x-velocity.pdf"], 'Resolution', 300)
+exportgraphics(figure(4),["figures/Y05pressure.pdf"], 'Resolution', 300)
+exportgraphics(figure(5),["figures/Y05vorticity.pdf"], 'Resolution', 300)
+exportgraphics(figure(6),["figures/Y05y-velocity.pdf"], 'Resolution', 300)
