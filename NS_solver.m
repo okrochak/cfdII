@@ -491,7 +491,7 @@ U = u; % circulation vector over dual edges
 tU = Ht11*U; % Flux vector over primal edges
 [X,Y] = meshgrid(x(2:end-1)); % coordinates of primal cell centers
 
-% Vorticity at dual points
+% Vorticity at primal points
 vort = Ht02*E21*H1t1*tU; % Convert fluxes to vorticity
 vortMat = reshape(vort,(N+1),(N+1))'; % Reshape vorticity vector into matrix
 
@@ -515,13 +515,23 @@ tvMat = reshape(tv,N,N+1)' ./ repmat(th,N+1,1); % divide the fluxes by the mesh 
 tuIntrp = interp2(tx,x(2:end-1),tuMat,X,Y);
 tvIntrp = interp2(x(2:end-1),tx,tvMat,X,Y);
 vortIntrp = interp2(tx,tx,vortMat,X,Y);
-
 % Integrate velocity to get to the streamfunction (psi = 0 on y = 0)
 psi = cumtrapz(x(2:end-1),tuIntrp,1);
 
 % Integrated vorticity over domain
-vortInt = trapz(tx(1:end-1),trapz(tx,vortMat(1:end-1,:),2),1);
+deltaX = x(3:end-1) - x(2:end-2);
+area = deltaX.*deltaX'; % area of each dual cell associated to inner vorticity points
+vortInt = sum(vortMat(2:end-1,2:end-1).*area,'all');
+% alternatively with trapz
+% vortInt = trapz(tx(2:end-1),trapz(tx(2:end-1),vortMat(2:end-1,2:end-1),2),1);
 
+% Curve integral over the inner boundary, anti-clockwise
+deltaXBC = x(2:end) - x(1:end-1);
+vortIntBc = x(2) * (deltaXBC(2:end-1)*vortMat(end,2:end-1)' + deltaXBC(2:end-1)*vortMat(1,2:end-1)' ...
+    + deltaXBC*vortMat(:,1) + deltaXBC*vortMat(:,end));
+% Alternatively with trapz
+% vortIntBc = x(2) * (trapz(tx(2:end-1),vortMat(end,2:end-1))+trapz(tx(2:end-1),vortMat(1,2:end-1)) ...
+%     + trapz(tx,vortMat(:,end)) + trapz(tx,vortMat(:,1)));
 % Curve integral over the inner boundary, anti-clockwise
 circInt = -trapz(tx,uMat(end,:))+trapz(tx,uMat(1,:)) ...
     + trapz(tx,vMat(:,end)) - trapz(tx,vMat(:,1));
