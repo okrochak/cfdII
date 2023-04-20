@@ -8,19 +8,19 @@ legSz = 15;
 lblSz = 25;
 lnWd = 1.5;
 
-% Simulation conditions
-tol = 1e-10;
-Re = 1000;
+% Simulation conditions to be analysed at centerline
+Re = 1000; % Reynolds number
+Nruns  = [15, 31, 47, 55, 63]; % Defining Post processed runs
+dt_mult = 1;
+tol = 1e-10; % Simulation tolerance
 
 %% Plot components along x = 0.5, y = 0.5;
 for i = 1:5
     % Aquiring post processing results
-    Nruns  = [15, 31, 47, 55, 63]; % Defining Post processed runs
     Crun = ['r','g','b','m','k']; % Assigning a colour to each run
     N = Nruns(i);
     C = Crun(i);
-%     load(strcat('results/PP_N=',num2str(N),'_tol=',num2str(tol),'_Re=',num2str(Re),'.mat')) %Loading Post Processed files
-    load(strcat('results/PostProcessingN_',num2str(N),'.mat')) %Loading Post Processed files
+    load("PP_N="+N+"_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+'.mat') % Loading Post Processed files
     
     % Variables along line x = 0.5
     Y_midline = postProc.x; % y- coordinates 
@@ -29,7 +29,7 @@ for i = 1:5
     u_ycenterline =  postProc.u(:,(N/2+0.5)); % u Velocity along centerline
     v_ycenterline =  postProc.v(:,(N/2+0.5)); % v Velocity along centerline
     
-    py = figure(1)
+    py = figure(1);
     set(gcf,'Position',[100 100 800 700])
     hold on
     plot(Y_midline,p_ymidline,C,'DisplayName',strcat('N = ',num2str(N)),'LineWidth',lnWd)
@@ -67,7 +67,7 @@ for i = 1:5
     u_xcenterline =  postProc.u(N/2+0.5,:); % u Velocity along centerline
     v_xcenterline =  postProc.v(N/2+0.5,:); % v Velocity along centerline
     
-    px = figure(4)
+    px = figure(4);
     set(gcf,'Position',[100 100 800 700])
     hold on
     plot(Y_midline,p_xmidline,C,'DisplayName',strcat('N =',num2str(N)),'LineWidth',lnWd)
@@ -117,16 +117,15 @@ Botella_vertdata = [1.0000 -1.00000 -1.0000000 0.052987 14.7534,;
 0.0547 0.18109 0.1812881 0.109689 -2.44960,;
 0.0000 0.00000 0.0000000 0.110591 -4.16648];
 
-% axes(py)
-figure(py)
+figure(py);
 hold on
-scatter(Botella_vertdata(:,1),Botella_vertdata(:,4),'k','DisplayName','Reference','LineWidth',lnWd)
-figure(vorty)
+scatter(Botella_vertdata(:,1),Botella_vertdata(:,4),'k','DisplayName','Reference','LineWidth',lnWd);
+figure(vorty);
 hold on
-scatter(Botella_vertdata(:,1),Botella_vertdata(:,5),'k','DisplayName','Reference','LineWidth',lnWd)
-figure(uVely)
+scatter(Botella_vertdata(:,1),Botella_vertdata(:,5),'k','DisplayName','Reference','LineWidth',lnWd);
+figure(uVely);
 hold on
-scatter(Botella_vertdata(:,1),Botella_vertdata(:,3),'k','DisplayName','Reference','LineWidth',lnWd)
+scatter(Botella_vertdata(:,1),Botella_vertdata(:,3),'k','DisplayName','Reference','LineWidth',lnWd);
 
 % Reference results from Botella along centerline y = 0.5
 Botella_hordata = [0.0000 0.00000 0.0000000 0.077455 -5.46217,;
@@ -147,19 +146,19 @@ Botella_hordata = [0.0000 0.00000 0.0000000 0.077455 -5.46217,;
 0.9375 0.27485 0.2807056 0.088445 -1.83308,;
 1.0000 0.00000 0.0000000 0.090477 -7.66369];
 
-figure(px)
+figure(px);
 hold on
-scatter(Botella_hordata(:,1),Botella_hordata(:,4),'k','DisplayName','Reference','LineWidth',lnWd)
-figure(vortx)
+scatter(Botella_hordata(:,1),Botella_hordata(:,4),'k','DisplayName','Reference','LineWidth',lnWd);
+figure(vortx);
 hold on
-scatter(Botella_hordata(:,1),Botella_hordata(:,5),'k','DisplayName','Reference','LineWidth',lnWd)
-figure(vVelx)
+scatter(Botella_hordata(:,1),Botella_hordata(:,5),'k','DisplayName','Reference','LineWidth',lnWd);
+figure(vVelx);
 hold on
-scatter(Botella_hordata(:,1),Botella_hordata(:,3),'k','DisplayName','Reference','LineWidth',lnWd)
+scatter(Botella_hordata(:,1),Botella_hordata(:,3),'k','DisplayName','Reference','LineWidth',lnWd);
 
-exportgraphics(figure(1),["figures/X05pressure.pdf"], 'Resolution', 300)
-exportgraphics(figure(2),["figures/X05vorticity.pdf"], 'Resolution', 300)
-exportgraphics(figure(3),["figures/X05x-velocity.pdf"], 'Resolution', 300)
-exportgraphics(figure(4),["figures/Y05pressure.pdf"], 'Resolution', 300)
-exportgraphics(figure(5),["figures/Y05vorticity.pdf"], 'Resolution', 300)
-exportgraphics(figure(6),["figures/Y05y-velocity.pdf"], 'Resolution', 300)
+exportgraphics(figure(1),["figures/X05pressure_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+".pdf"], 'Resolution', 300)
+exportgraphics(figure(2),["figures/X05vorticity_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+".pdf"], 'Resolution', 300)
+exportgraphics(figure(3),["figures/X05xvelocity_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+".pdf"], 'Resolution', 300)
+exportgraphics(figure(4),["figures/Y05pressure_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+".pdf"], 'Resolution', 300)
+exportgraphics(figure(5),["figures/Y05vorticity_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+".pdf"], 'Resolution', 300)
+exportgraphics(figure(6),["figures/Y05yvelocity_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+".pdf"], 'Resolution', 300)
