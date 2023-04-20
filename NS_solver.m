@@ -24,17 +24,17 @@ warning on
 % the solution will blow up due to numerical instability.
 %
 
-Re = 1000;              % Reynolds number
+Re = 10000;              % Reynolds number
 N = 31;      %  N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
 Delta = 1/N;            % uniform spacing to be used in the mapping to compute tx
 
 
 % Determine a suitable time step and stopping criterion, tol
 
-tol =   1e-10;             % tol determines when steady state is reached and the program terminates
+tol =   1e-5;             % tol determines when steady state is reached and the program terminates
 
 % wall velocities
-U_wall_top = -1;
+U_wall_top = -1; %-1
 U_wall_bot = 0;
 U_wall_left = 0;
 U_wall_right = 0;
@@ -487,19 +487,26 @@ lnWd = 2;
 %% Calculating domain properties
     
 % Domain velocities
-U = u; % Flux vector over dual edges
+U = u; % circulation vector over dual edges
 tU = Ht11*U; % Flux vector over primal edges
 [X,Y] = meshgrid(x(2:end-1)); % coordinates of primal cell centers
 
 % Vorticity at dual points
 vort = Ht02*E21*H1t1*tU; % Convert fluxes to vorticity
 vortMat = reshape(vort,(N+1),(N+1))'; % Reshape vorticity vector into matrix
-    
-% Calculating the average velocity over primal edges
+
+% Calculating the average velocity through primal edges
 tuSize = length(tU);
 tv = tU((tuSize/2)+1:end); % x and y velocity fluxes on primal mesh
 tu = tU(1:(tuSize/2));
-    
+   
+% Calculating the average velocity along dual edges
+uSize = length(u);
+v = u((uSize/2)+1:end);
+u = u(1:(uSize/2));
+uMat = reshape(u,N+1,N)' ./ repmat(h,N,1); % divide the circulations by the mesh width
+vMat = reshape(v,N,N+1)' ./ repmat(h,N,1)';
+
 % tuMat, tvMat are fluxes divided by cell width, velocities through primal edges
 tuMat = reshape(tu,N+1,N)' ./ repmat(th',1,N+1); % divide the fluxes by the mesh width
 tvMat = reshape(tv,N,N+1)' ./ repmat(th,N+1,1); % divide the fluxes by the mesh width
@@ -513,7 +520,11 @@ vortIntrp = interp2(tx,tx,vortMat,X,Y);
 psi = cumtrapz(x(2:end-1),tuIntrp,1);
 
 % Integrated vorticity over domain
-vortInt = trapz(tx,trapz(tx,vortMat,1),2);
+vortInt = trapz(tx(1:end-1),trapz(tx,vortMat(1:end-1,:),2),1);
+
+% Curve integral over the inner boundary, anti-clockwise
+circInt = -trapz(tx,uMat(end,:))+trapz(tx,uMat(1,:)) ...
+    + trapz(tx,vMat(:,end)) - trapz(tx,vMat(:,1));
 
 % Inner dual point pressures 
 p_trim = p([(2*N+1):(size(p)-2*N)]); % Pressure at inner dual points
@@ -525,7 +536,6 @@ pMat = pMat - p_ref; % Adjusting pressure
 
 %% Integrated vorticity?
 
-vortInt = trapz(tx,trapz(tx,vortMat,1),2);
 
 %% Assemble post-processing results in a single structure
 postProc.p = pMat;
