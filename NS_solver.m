@@ -23,8 +23,8 @@ warning on
 % step will make the calculation very long, while for a too large time step
 % the solution will blow up due to numerical instability.
 %
-Re = 2000;   % Reynolds number
-N = 55;      % N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
+Re = 10000;   % Reynolds number
+N = 63  ;      % N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
 dt_mult = 5; % Tested to work at 5 for all N, can maybe go higher? Tested at 10 and it was unstable already
 Delta = 1/N; % uniform spacing to be used in the mapping to compute tx
 
@@ -96,16 +96,17 @@ tE21indJ = zeros(1,4*tE21Ncols);
 tE21val = zeros(1,4*tE21Ncols); 
 counter = 1;
 
-% In those loops I assemble I index, J index and value arrays, which
+% In those loops we assemble I index, J index and value arrays, which
 % will be later assembled in a sparse matrix. This makes the code longer
 % but decreases memory consumption. in hindsight i,j approch should have
 % been used
+
 for i = 1:(2*N)     % write the first block of rows (green in excel)
     if mod(i,2) == 1
         tE21indI(counter) = i;
         tE21indJ(counter) = i;
         tE21val(counter) = -1;
-        counter = counter + 1; % stupid matlab lol
+        counter = counter + 1;
         tE21indI(counter) = i;
         tE21indJ(counter) = 2*N + (floor(i/2)*(N+1)) + 1;
         tE21val(counter) = 1;
@@ -142,7 +143,7 @@ for i = (2*N+1):(2*N+N^2)   % write the middle block (blue one)
     tE21val(counter) =  1;
     counter = counter + 1; 
 end
-for i = (2*N+N^2+1):K   % write the last block (orange one)
+for i = (2*N+N^2+1):K   % Write the last block (orange one)
 
     if floor((i - (2*N+N^2)-1)/N) == 0 
         tE21indI(counter) = i;
@@ -182,23 +183,19 @@ ind_rem = [1:(2*N) (tE21Ncols-(N*2)+1):tE21Ncols];
 M_u_norm = tE21(:,ind_rem);
 tE21(:,ind_rem) = []; % the matrix is now trimmed
 
-
-%  Inserting boundary conditions for normal velocity components and store
-%  this part in the vector u_norm, see assignment.
-
+% Inserting boundary conditions for normal velocity components and store
+% this part in the vector u_norm, see assignment.
 % The problem now became tE21*u+ u_norm = 0; 
 % where u_norm = M_u_norm*u_boundary;
 
 % Assemble the normal boundary vector u_Nbc
 u_Nbc = zeros(4*N,1);
-u_Nbc(1:2:(2*N)) = U_wall_left.*th;
-u_Nbc(2:2:(2*N)) = U_wall_right.*th;
-u_Nbc((2*N+1):(3*N)) = V_wall_bot.*th;
-u_Nbc((3*N+1):(4*N)) = V_wall_top.*th;
-
+u_Nbc(1:2:(2*N)) = U_wall_left.*th; % Left wall BC
+u_Nbc(2:2:(2*N)) = U_wall_right.*th; % Bottom wall BC
+u_Nbc((2*N+1):(3*N)) = V_wall_bot.*th; % Bottom wall BC
+u_Nbc((3*N+1):(4*N)) = V_wall_top.*th; % Upper BC
 
 % Compute u_norm
-
 u_norm = M_u_norm*u_Nbc;
 
 clear ind_rem
@@ -284,22 +281,21 @@ E21(:,ind_rem) = []; % the matrix is now trimmed
 
 % assemble tangential velocity boundary vector u_Tbc (u_prescr)
 u_Tbc = zeros(4*(N+1),1);
-u_Tbc(1:(N+1)) = U_wall_bot.*h;
-u_Tbc((N+1+1):(2*(N+1))) = U_wall_top.*h;
-u_Tbc((2*(N+1)+1):2:(4*(N+1))) = V_wall_left.*h;
-u_Tbc((2*(N+1))+2:2:(4*(N+1))) = V_wall_right.*h;
+u_Tbc(1:(N+1)) = U_wall_bot.*h; % Lower wall BC
+u_Tbc((N+1+1):(2*(N+1))) = U_wall_top.*h; % Upper BC
+u_Tbc((2*(N+1)+1):2:(4*(N+1))) = V_wall_left.*h; % Left wall BC
+u_Tbc((2*(N+1))+2:2:(4*(N+1))) = V_wall_right.*h; % Right wall BC
 
 u_pres = M_u_tan*u_Tbc;
-%%  Set up the sparse, outer-oriented incidence matrix tE10. 
 
-tE10 = E21';    % yet to check for N=3
+%%  Set up the sparse, outer-oriented incidence matrix tE10. 
+tE10 = E21';    % tE10 is related to E21 by the transpose of E21
+
 %%  Set up the sparse, inner-oriented  incidence matrix E10
-E10 = -tE21';   % checked for N=3 
+E10 = -tE21';   % E10 is related to tE21 by the transpose of -tE21
 
 %%  Set up the Hodge matrices Ht11 and H1t1
-
-%H1t1 and H1t1 will have size of len(u) x len(u)
-
+% H1t1 and H1t1 will have size of len(u) x len(u)
 % build the diagonal terms
 
 ind_th = zeros(1,length(u));    % which th should this edge take
@@ -314,16 +310,18 @@ for i = 1:N
         ind_h(k) = j;
     end
 end
+
 % now the v-part, second half
 for i = 1:(N+1)     
     for j = 1:N
         k = N*(N+1) + (i-1) *(N) + j;
-        % (i,j) corresponds to the primal mesh. Now the sing is flipped
+        % (i,j) corresponds to the primal mesh. Now the indexing is flipped
         % though. 
         ind_th(k) = j;
         ind_h(k) = i;
     end
 end
+
 % Now with indices known, setting up the Hodge diagonals is trivial
 H1t1diag = (h(ind_h)./th(ind_th));
 Ht11diag = (th(ind_th)./h(ind_h));
@@ -331,9 +329,8 @@ H1t1 = spdiags(H1t1diag',0,length(u),length(u));
 Ht11 = spdiags(Ht11diag',0,length(u),length(u));
 
 clear H1t1diag Ht11diag ind_h ind_rem ind_th 
-%  Set up the Hodge matrix Ht02
-
-%%
+%%  Set up the Hodge matrix Ht02
+% build the diagonal terms
 ind_h = zeros(1,length(h));    % which width h should this edge take
 ind_h_2 = zeros(1,length(h));      % which height h should this edge take
 
@@ -348,10 +345,10 @@ for j = 1:(N+1)
 end
 
 % Now with indices known, setting up the Hodge diagonals is trivial
-Ht02diag = (1./(h(ind_h).*h(ind_h_2)));
+Ht02diag = (1./(h(ind_h).*h(ind_h_2))); % 1/ Area of dual cell
 Ht02 = spdiags(Ht02diag',0,length(h)^2,length(h)^2);
 
-%
+%%
 % The prescribed velocties will play a role in the momentum equation
 %
 u_pres_vort=Ht02*u_pres; %U_pres to outer oriented 0 form representing contribution of boundary conditions to point wise vorticity
@@ -386,6 +383,8 @@ iter = 1;
 % Set up the matrix for the Poisson equation    
 
 A = -tE21*Ht11*tE21'; 
+A_sum = sum(sum(A,2));
+A_sym = issymmetric(A);
 if sum(sum(A,2)) > N*(10^(-15))
     warning("Poisson matrix row-sum too large!");
 end
