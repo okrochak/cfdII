@@ -23,16 +23,16 @@ warning on
 % step will make the calculation very long, while for a too large time step
 % the solution will blow up due to numerical instability.
 %
-Re = 1000;   % Reynolds number
-N = 31;      % N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
-dt_mult = 1; % Tested to work at 5 for all N, can maybe go higher? Tested at 10 and it was unstable already
+Re = 2000;   % Reynolds number
+N = 55;      % N = 15, 31, 47, 55, 63.          % Number of volumes in the x- and y-direction
+dt_mult = 5; % Tested to work at 5 for all N, can maybe go higher? Tested at 10 and it was unstable already
 Delta = 1/N; % uniform spacing to be used in the mapping to compute tx
 
 % Determine a suitable time step and stopping criterion, tol
 tol =   1e-10;             % tol determines when steady state is reached and the program terminates
 
 % wall velocities
-U_wall_top = -1; %-1
+U_wall_top = -1; 
 U_wall_bot = 0;
 U_wall_left = 0;
 U_wall_right = 0;

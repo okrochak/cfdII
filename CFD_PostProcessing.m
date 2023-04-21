@@ -1,15 +1,11 @@
 %%% Post-processing
 close all
 clear
-% Plotting preferences
-fntSz = 20;
-lblSz = 25;
-lnWd = 2;
 
 % Results simulation conditions to be Post Processed
-Re = 1000; % Reynolds number
-N = 63; %  N = 15, 31, 47, 55, 63 =  Number of volumes in the x- and y-direction
-dt_mult = 1; % Conservative timestep multiplier
+Re = 2000; % Reynolds number
+N = 15; %  N = 15, 31, 47, 55, 63 =  Number of volumes in the x- and y-direction
+dt_mult = 5; % Conservative timestep multiplier
 tol =   1e-10; % tol determines when steady state is reached and the program terminates
 
 load("results/results_N="+N+"_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+".mat") % Loading results file to be Post Processed
@@ -80,9 +76,14 @@ postProc.vort = vortIntrp;
 postProc.u = tuIntrp;
 postProc.v = tvIntrp;
 postProc.x = x(2:end-1);
-save("PP_N="+N+"_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult,"postProc")
+save("results/PP_N="+N+"_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult,"postProc")
 
 %% Plotting routine
+% Plotting preferences
+fntSz = 20;
+lblSz = 25;
+lnWd = 2;
+
 %% Vorticity
 figure(1)
 set(gcf,'Position',[100 100 800 700])
@@ -124,7 +125,7 @@ exportgraphics(gcf,["figures/Omega_N="+N+"_tol="+string(tol)+"_Re="+Re+"_dtmult=
 figure(2)
 set(gcf,'Position',[100 100 800 700])
 
-contLvl = flip([0.1175 0.115 0.11 0.1 0.09 0.07 0.05 0.03 0.01 0.001 1e-5 1e-10 ...
+contLvl = flip([0.1175 0.115 0.11 0.1 0.09 0.07 0.05 0.03 0.01 0.0001 1e-5 1e-10 ...
     0 -1e-6 -1e-5 -5e-5 -1e-4 -2.5e-4 -5e-4 -1e-3 -1.5e-3]);
 tickVals = linspace(contLvl(1), contLvl(end), length(contLvl));
 % adapted from https://nl.mathworks.com/matlabcentral/answers/738107-how-to-make-a-discrete-colorbar-with-specified-intervals?s_tid=prof_contriblnk

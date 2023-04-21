@@ -20,7 +20,7 @@ for i = 1:5
     Crun = ['r','g','b','m','k']; % Assigning a colour to each run
     N = Nruns(i);
     C = Crun(i);
-    load("PP_N="+N+"_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+'.mat') % Loading Post Processed files
+    load("results/PP_N="+N+"_tol="+string(tol)+"_Re="+Re+"_dtmult="+dt_mult+'.mat') % Loading Post Processed files
     
     % Variables along line x = 0.5
     Y_midline = postProc.x; % y- coordinates 
